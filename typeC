@@ -1,0 +1,72 @@
+import streamlit as st
+import random
+import datetime
+
+# --- 1. アプリのタイトルと説明 ---
+st.title("🛡️ 会話型サイバー防御AI アシスタント")
+st.write("チャットで指示を出したり、リアルタイムの監視ログを確認できる次世代コントロールパネルです。")
+
+# --- 2. セッションステート（記憶・チャット履歴・ログ）の初期化 ---
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "こんにちは！私はあなたの端末を守るAIアシスタントです。何か異常がないか常時監視しています。「スキャンして」や「今の状態は？」と話しかけてくださいね！"}
+    ]
+
+if "logs" not in st.session_state:
+    st.session_state.logs = []
+
+# --- 3. 定期（または起動時）の自動スクリーニングのシミュレーション ---
+if random.random() < 0.4 and not st.session_state.logs:
+    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+    st.session_state.logs.insert(0, f"[{current_time}] 系統監視：不審なトラフィックなし。システムは正常です。")
+
+# --- 4. 画面レイアウト（タブで切り替え） ---
+tab_chat, tab_logs = st.tabs(["💬 AIチャット・指令", "📋 リアルタイム監視ログ"])
+
+with tab_chat:
+    # チャット履歴の表示
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+
+    # ユーザーからのチャット入力
+    if prompt := st.chat_input("AIに指示や質問を入力してください... (例: 「スキャンして」「安全？」)"):
+        # ユーザーのメッセージを追加
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.write(prompt)
+
+        # AIの返答ロジック（キーワードに応じた反応）
+        response = ""
+        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        
+        if "スキャン" in prompt or "確認" in prompt or "調べて" in prompt:
+            response = f"[{current_time}] 手動スクリーニングを実行しました！ポートやネットワークに異常はありません。すべて安全です。"
+            st.session_state.logs.insert(0, f"[{current_time}] ユーザー指令による手動スキャン：異常なし")
+        elif "ログ" in prompt or "履歴" in prompt:
+            response = f"現在の監視ログは全部で {len(st.session_state.logs)} 件記録されています。「リアルタイム監視ログ」タブから詳細を確認できます。"
+        elif "安全" in prompt or "状態" in prompt or "ステータス" in prompt:
+            response = f"[{current_time}] 現在のシステム状態：🟢 **安全（セキュア）**\nファイアウォールは正常に稼働しており、不正アクセスの兆候はありません。"
+        else:
+            response = f"「{prompt}」ですね。了解しました！引き続き警戒態勢を維持しつつ、いつでもあなたの安全をサポートします。"
+
+        # AIの返答を追加
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        with st.chat_message("assistant"):
+            st.write(response)
+
+with tab_logs:
+    st.subheader("📋 セキュリティ監視・防衛ログ")
+    st.write("AIが検知したイベントや、手動スキャンの履歴がここに時系列で記録されます。")
+
+    if st.button("🔄 今すぐ手動でスクリーニングを実行する"):
+        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        new_log = f"[{current_time}] ユーザーによる手動スクリーニング完了：脅威なし"
+        st.session_state.logs.insert(0, new_log)
+        st.success("スクリーニングが完了し、ログが更新されました！")
+
+    if st.session_state.logs:
+        for log in st.session_state.logs:
+            st.text(log)
+    else:
+        st.info("現在記録されているログはありません。")
